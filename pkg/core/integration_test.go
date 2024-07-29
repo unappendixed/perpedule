@@ -3,6 +3,7 @@ package core
 import (
 	"os"
 	"testing"
+    model "github.com/unappendixed/perpedule/pkg/core/model"
 )
 
 func TestParseICSFile(t *testing.T) {
@@ -17,9 +18,9 @@ func TestParseICSFile(t *testing.T) {
         t.Fatal("Failed to parse object")
     }
 
-    cd := initCalendarData(cal)
+    cd := model.InitCalendarData(cal)
     expected := 2
-    if len(cd.components) != expected {
-        t.Errorf("want %d got %d", expected, len(cd.components))
+    if len(cd.Components) != expected {
+        t.Errorf("want %d got %d", expected, len(cd.Components))
     }
 }

@@ -7,12 +7,13 @@ import (
 
 type Project struct {
 	inner        ics.ComponentBase
+    calendarData *CalendarData
 }
 
-func NewProject(name string, cd *CalendarData) (Project, error) {
+func NewProject(name string) (Project, error) {
 
 	out := Project{
-		calendarData: cd,
+		calendarData: nil,
 	}
 
 	id, err := uuid.NewUUID()
@@ -28,19 +29,25 @@ func NewProject(name string, cd *CalendarData) (Project, error) {
 	return out, nil
 }
 
+func (p Project) Id() string {
+    return p.inner.Id()
+}
+
 func (p Project) Children() []TimeBlock {
-    if len(p.children) == 0 {
-        return []TimeBlock{}
+
+    out := make([]TimeBlock, 0, 10)
+
+    for _, v := range p.calendarData.Components {
+        if GetRelatedToId(v) == p.Id() {
+            tb, success := p.calendarData.GetAsTimeBlock(v)
+            if !success {
+                continue
+            }
+
+            out = append(out, tb)
+        }
     }
 
-    // components := make([]TimeBlock, len(p.children))
-    // for i := range p.children {
-    //     if i > len(p.calendarData.Components) {
-    //         // components = append(components, )
-    //     }
-    // }
-
-
-    return []TimeBlock{}
+    return out
     
 }

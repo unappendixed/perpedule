@@ -10,8 +10,6 @@ type CalendarData struct {
     Components []ics.ComponentBase
     NewComponents []ics.ComponentBase
     UidLookup map[string]int
-    ProjectIndex []int
-    TimeBlockIndex []int
 }
 
 func NewCalendarData(cal *ics.Calendar) *CalendarData {
@@ -61,10 +59,32 @@ func (cd *CalendarData) GetByUid(uid string) (ics.ComponentBase, bool) {
     }
 
     return cd.Components[idx], true
-
 }
 
-func (cd *CalendarData) AsProject(c ics.ComponentBase) (Project, bool) {
+func (cd *CalendarData) Projects() []Project {
+    out := make([]Project, 0, (len(cd.Components) / 5) + (len(cd.NewComponents) / 5))
+    for _, v := range cd.Components {
+        if p, success := cd.GetAsProject(v); success {
+            out = append(out, p)
+        }
+    }
+
+    for _, v := range cd.NewComponents {
+        if p, success := cd.GetAsProject(v); success {
+            out = append(out, p)
+        }
+    }
+
+    return out
+}
+
+func (cd *CalendarData) AddProject(p Project) {
+    p.calendarData = cd
+
+    cd.NewComponents = append(cd.NewComponents, p.inner)
+}
+
+func (cd *CalendarData) GetAsProject(c ics.ComponentBase) (Project, bool) {
 	prop := c.GetProperty(ics.ComponentProperty(PPDType))
     out := Project{}
 
@@ -78,7 +98,28 @@ func (cd *CalendarData) AsProject(c ics.ComponentBase) (Project, bool) {
     return out, true
 }
 
-func (cd *CalendarData) AsTimeBlock(c ics.ComponentBase) (TimeBlock, bool) {
+func (cd *CalendarData) TimeBlocks() []TimeBlock {
+    out := make([]TimeBlock, 0, (len(cd.Components) / 5) + (len(cd.NewComponents) / 5))
+    for _, v := range cd.Components {
+        if tb, success := cd.GetAsTimeBlock(v); success {
+            out = append(out, tb)
+        }
+    }
+
+    for _, v := range cd.NewComponents {
+        if tb, success := cd.GetAsTimeBlock(v); success {
+            out = append(out, tb)
+        }
+    }
+
+    return out
+}
+
+func (cd *CalendarData) AddTimeBlock(tb TimeBlock) {
+    cd.NewComponents = append(cd.NewComponents, tb.inner)
+}
+
+func (cd *CalendarData) GetAsTimeBlock(c ics.ComponentBase) (TimeBlock, bool) {
     
 	prop := c.GetProperty(ics.ComponentProperty(PPDType))
     out := TimeBlock{}

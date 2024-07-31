@@ -1,5 +1,5 @@
 package main
 
 import (
-    tdcore "github.com/unappendixed/tbtodo/pkg/core"
+     pdcore "github.com/unappendixed/perpedule/pkg/core"
 )

@@ -18,7 +18,7 @@ func TestParseICSFile(t *testing.T) {
         t.Fatal("Failed to parse object")
     }
 
-    cd := model.InitCalendarData(cal)
+    cd := model.NewCalendarData(cal)
     expected := 2
     if len(cd.Components) != expected {
         t.Errorf("want %d got %d", expected, len(cd.Components))

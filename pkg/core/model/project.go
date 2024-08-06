@@ -6,9 +6,11 @@ import (
 )
 
 type Project struct {
-	inner        ics.ComponentBase
+	inner        ics.GeneralComponent
     calendarData *CalendarData
 }
+
+type projectPropertyOption func(*Project)
 
 func NewProject(name string) (Project, error) {
 
@@ -25,7 +27,7 @@ func NewProject(name string) (Project, error) {
 	todo.AddProperty(ics.ComponentProperty(ics.PropertyName), name)
 	todo.AddProperty(ics.ComponentProperty(PPDType), PPDTypeProject)
 
-	out.inner = todo.ComponentBase
+	out.inner = ics.GeneralComponent{ComponentBase: todo.ComponentBase, Token: ICSTokenTodo}
 	return out, nil
 }
 
@@ -50,4 +52,22 @@ func (p Project) Children() []TimeBlock {
 
     return out
     
+}
+
+func (p *Project) SetProperties(opts ...projectPropertyOption) {
+    for _, v := range opts {
+        v(p)
+    }
+}
+
+func SetProjectName(name string) projectPropertyOption {
+    return func(p *Project) {
+        p.inner.SetProperty(ics.ComponentProperty(ics.PropertyName), name)
+    }
+}
+
+func SetProjectDescription(desc string) projectPropertyOption {
+    return func(p *Project) {
+        p.inner.SetProperty(ics.ComponentProperty(ics.PropertyName), desc)
+    }
 }

@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/arran4/golang-ical"
+	"github.com/google/uuid"
 )
 
 var ParentNotFoundErr error = errors.New("Could not find parent in lookup table")
@@ -19,6 +20,23 @@ type TimeBlock struct {
 // See SetName, SetDescription, SetParent, SetStart, SetEnd, etc...
 type timeBlockPropertyOption func(*TimeBlock)
 
+func NewTimeBlock(name string) (TimeBlock, error) {
+    id, err := uuid.NewUUID()
+    if err != nil {
+        return TimeBlock{}, err
+    }
+
+    event := ics.NewEvent(id.String())
+	event.AddProperty(ics.ComponentProperty(ics.PropertyName), name)
+	event.AddProperty(ics.ComponentProperty(PPDType), PPDTypeTimeblock)
+
+    return TimeBlock{
+        inner: ics.GeneralComponent{ComponentBase: event.ComponentBase, Token: ICSTokenEvent},
+        parentId: "",
+        calendarData: nil,
+    }, nil
+}
+
 func (tb TimeBlock) Parent() (*Project, error) {
     c, found := tb.calendarData.GetByUid(tb.parentId)
     if !found {
@@ -32,6 +50,10 @@ func (tb TimeBlock) Parent() (*Project, error) {
     }
 
     return &p, nil
+}
+
+func (tb TimeBlock) Uid() string {
+    return tb.inner.Id()
 }
 
 func (tb *TimeBlock) SetProperties(opts ...timeBlockPropertyOption) {

@@ -1,9 +1,8 @@
 package core
 
 import (
-	"fmt"
+	"slices"
 	"github.com/arran4/golang-ical"
-    "slices"
 )
 
 type CalendarData struct {
@@ -17,16 +16,24 @@ func (cd *CalendarData) ToICal() ics.Calendar {
     cal := cd.inner
     outComponents := make([]ics.Component, 0, len(cd.Components) + len(cd.NewComponents))
     for _, v := range cal.Components {
-        idIndex := slices.IndexFunc[[]ics.IANAProperty](v.UnknownPropertiesIANAProperties(), func(i ics.IANAProperty) bool {
-            return i.IANAToken == "UID"
+        idIndex := slices.IndexFunc(v.UnknownPropertiesIANAProperties(), func(i ics.IANAProperty) bool {
+            return i.IANAToken == string(ics.ComponentPropertyUniqueId)
         })
+        
+        if idIndex == -1 {
+            continue
+        }
 
         id := v.UnknownPropertiesIANAProperties()[idIndex].Value
 
         // Check Components slice
-        idInComponents := slices.ContainsFunc[[]ics.GeneralComponent](cd.Components, func(gc ics.GeneralComponent) bool {
+        idInComponents := slices.ContainsFunc(cd.Components, func(gc ics.GeneralComponent) bool {
             return gc.Id() == id
         })
+
+        if idIndex == -1 {
+            continue
+        }
 
         if idInComponents{
             continue
@@ -34,7 +41,7 @@ func (cd *CalendarData) ToICal() ics.Calendar {
 
 
         // Check NewComponents slice
-        idInNewComponents := slices.ContainsFunc[[]ics.GeneralComponent](cd.NewComponents, func(gc ics.GeneralComponent) bool {
+        idInNewComponents := slices.ContainsFunc(cd.NewComponents, func(gc ics.GeneralComponent) bool {
             return gc.Id() == id
         })
 
@@ -44,7 +51,6 @@ func (cd *CalendarData) ToICal() ics.Calendar {
 
         outComponents = append(outComponents, v)
 
-        cal.Components = outComponents
 
     }
 
@@ -56,12 +62,13 @@ func (cd *CalendarData) ToICal() ics.Calendar {
         outComponents = append(outComponents, ics.Component(&v))
     }
 
+    cal.Components = outComponents
+
     return *cal
 }
 
 func NewCalendarData(cal *ics.Calendar) *CalendarData {
     events := cal.Events()
-    fmt.Printf("Events: %d", len(events))
     todos := cal.Todos()
 
     cd := CalendarData{}
@@ -163,6 +170,7 @@ func (cd *CalendarData) TimeBlocks() []TimeBlock {
 }
 
 func (cd *CalendarData) AddTimeBlock(tb TimeBlock) {
+    tb.calendarData = cd
     cd.NewComponents = append(cd.NewComponents, tb.inner)
 }
 
@@ -171,7 +179,7 @@ func (cd *CalendarData) GetAsTimeBlock(c ics.GeneralComponent) (TimeBlock, bool)
 	prop := c.GetProperty(ics.ComponentProperty(PPDType))
     out := TimeBlock{}
 
-    if prop == nil || prop.Value != PPDTypeProject {
+    if prop == nil || prop.Value != PPDTypeTimeblock {
         return out, false
     }
 

@@ -56,6 +56,14 @@ func (tb TimeBlock) Uid() string {
     return tb.inner.Id()
 }
 
+func (tb TimeBlock) Name() string {
+    prop := tb.inner.GetProperty(ics.ComponentProperty(ics.PropertyName))
+    if prop != nil {
+        return prop.Value
+    }
+    return ""
+}
+
 func (tb *TimeBlock) SetProperties(opts ...timeBlockPropertyOption) {
     for _,v := range opts {
         v(tb)

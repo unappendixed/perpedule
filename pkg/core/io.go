@@ -29,6 +29,8 @@ func parseICSURI(uri string, opts ...httpOption) (*ics.Calendar, error) {
 	if err != nil {
 		return nil, err
 	}
+    
+    _, err = parseICS(&bytes.Buffer{})
 
 	req.Header.Add("Content-Type", "text/calendar")
 

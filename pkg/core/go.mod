@@ -5,4 +5,5 @@ go 1.22.0
 require (
 	github.com/arran4/golang-ical v0.3.1
 	github.com/google/uuid v1.6.0
+	github.com/sergi/go-diff v1.3.1
 )

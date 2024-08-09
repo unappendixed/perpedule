@@ -1,7 +1,9 @@
 package core
 
 import (
+	"reflect"
 	"slices"
+
 	"github.com/arran4/golang-ical"
 )
 
@@ -10,6 +12,15 @@ type CalendarData struct {
     Components []ics.GeneralComponent
     NewComponents []ics.GeneralComponent
     UidLookup map[string]int
+}
+
+func (cd *CalendarData) Equal(cd2 *CalendarData) bool {
+
+    tmp := cd.zeroPointers()
+    tmp2 := cd2.zeroPointers()
+
+    return reflect.DeepEqual(tmp, tmp2)
+
 }
 
 func (cd *CalendarData) ToICal() ics.Calendar {
@@ -192,4 +203,13 @@ func (cd *CalendarData) GetAsTimeBlock(c ics.GeneralComponent) (TimeBlock, bool)
     out.calendarData = cd
 
     return out, true
+}
+
+func (cd *CalendarData) zeroPointers() *CalendarData {
+    out := *cd
+
+    out.inner = nil
+    out.UidLookup = nil
+
+    return &out
 }

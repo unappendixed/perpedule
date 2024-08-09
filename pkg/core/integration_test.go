@@ -15,6 +15,8 @@ import (
 
 const SHARED_EXAMPLE_FILE = "../../test_files/testcalendar.ics"
 
+// HELPERS
+
 // Attempts to open the calendar file at `filepath` and calls Fatalf on error
 func openCalendarFile(t *testing.T, filepath string) *model.CalendarData {
 	t.Helper()
@@ -34,11 +36,14 @@ func openCalendarFile(t *testing.T, filepath string) *model.CalendarData {
 
 }
 
-func diffText(t *testing.T, first string, second string) string {
+func diffText(t *testing.T, first any, second any) string {
 	t.Helper()
 
+    s1 := fmt.Sprint(first)
+    s2 := fmt.Sprint(second)
+
 	dmp := diffmatchpatch.New()
-	diffs := dmp.DiffMain(first, second, false)
+	diffs := dmp.DiffMain(s1, s2, false)
 
 	return dmp.DiffPrettyText(diffs)
 
@@ -55,12 +60,12 @@ func writeTempICSFile(t *testing.T, suffix string, cd *model.CalendarData) strin
 	ts := fmt.Sprint(time.Now().Unix())
 	fileid := fmt.Sprintf("perpedule_%s_%s.ics", suffix, ts)
 	filepath := path.Join(os.TempDir(), fileid)
-	outfile, err := os.Create(filepath)
+	tempfilepath, err := os.Create(filepath)
 	if err != nil {
 		t.Fatalf("Failed to write to temp file: %s", err.Error())
 	}
 
-	cal.SerializeTo(outfile)
+	cal.SerializeTo(tempfilepath)
 
 	return filepath
 }
@@ -78,28 +83,6 @@ func cleanupTempICSFile(t *testing.T, filepath string) {
     if err != nil {
         fmt.Printf("Failed to cleanup temp file %q: %s\n", filepath, err.Error())
     }
-}
-
-func TestWriteICSFile(t *testing.T) {
-	TEST_FILE := SHARED_EXAMPLE_FILE
-	cd := openCalendarFile(t, TEST_FILE)
-	newpath := writeTempICSFile(t, "testwriteicsfile", cd)
-	cd2 := openCalendarFile(t, newpath)
-    cleanupTempICSFile(t, newpath)
-	if !cd.Equal(cd2) {
-		t.Fatalf("original file and new file are not equal: %s",
-			diffText(t, fmt.Sprint(cd), fmt.Sprint(cd2)),
-		)
-	}
-}
-
-func TestParseICSFile(t *testing.T) {
-	TEST_FILE := SHARED_EXAMPLE_FILE
-	cd := openCalendarFile(t, TEST_FILE)
-	expected := 2
-	if len(cd.Components) != expected {
-		t.Errorf("want %d got %d", expected, len(cd.Components))
-	}
 }
 
 func printComponents(t *testing.T, cd *model.CalendarData) {
@@ -120,6 +103,97 @@ func printComponents(t *testing.T, cd *model.CalendarData) {
 			t.Logf("%v\n", v2)
 		}
 	}
+}
+
+// Attempts to find and return a timeblock resource from `cd`. Calls t.Fatal on
+// any errors
+func tryGetProject(t *testing.T, cd *model.CalendarData, uid string) model.Project {
+    t.Helper()
+
+    comp, found := cd.GetByUid(uid)
+    if !found {
+        t.Fatalf("Failed to lookup project with uid %q", uid)
+    }
+
+    p, success := cd.GetAsProject(comp)
+    if !success {
+        t.Fatalf("Failed to convert component with uid %q to project", comp)
+    }
+
+    return p
+}
+
+// Attempts to find and return a timeblock resource from `cd`. Calls t.Fatal on
+// any errors
+func tryGetTimeBlock(t *testing.T, cd *model.CalendarData, uid string) model.TimeBlock {
+    t.Helper()
+
+    comp, found := cd.GetByUid(uid)
+    if !found {
+        t.Fatalf("Failed to lookup timeblock with uid %q", uid)
+    }
+
+    tb, success := cd.GetAsTimeBlock(comp)
+    if !success {
+        t.Fatalf("Failed to convert component with uid %q to timeblock", comp)
+    }
+
+    return tb
+}
+
+func TestWriteICSFile(t *testing.T) {
+	TEST_FILE := SHARED_EXAMPLE_FILE
+	cd := openCalendarFile(t, TEST_FILE)
+	tempfilepath := writeTempICSFile(t, "testwriteicsfile", cd)
+	cd2 := openCalendarFile(t, tempfilepath)
+    cleanupTempICSFile(t, tempfilepath)
+	if !cd.Equal(cd2) {
+		t.Fatalf("original file and new file are not equal: %s",
+			diffText(t, cd, cd2),
+		)
+	}
+}
+
+func TestParseICSFile(t *testing.T) {
+	TEST_FILE := SHARED_EXAMPLE_FILE
+	cd := openCalendarFile(t, TEST_FILE)
+	expected := 2
+	if len(cd.Components) != expected {
+		t.Errorf("want %d got %d", expected, len(cd.Components))
+	}
+}
+
+
+func TestAddProject(t *testing.T) {
+    TEST_FILE := SHARED_EXAMPLE_FILE
+    cd := openCalendarFile(t, TEST_FILE)
+    p, err := model.NewProject("Test project")
+    if err != nil {
+        t.Fatalf("failed to create project: %s", err.Error())
+    }
+
+    cd.AddProject(p)
+
+    tempfilepath := writeTempICSFile(t, "testaddproject", cd)
+
+    cd2 := openCalendarFile(t, tempfilepath)
+    cleanupTempICSFile(t, tempfilepath)
+
+    component, found := cd2.GetByUid(p.Id())
+    if !found {
+        t.Fatalf("Newly created project did not survive serialization.")
+    }
+
+    p2, success := cd2.GetAsProject(component)
+    if !success {
+        t.Fatalf("Newly created component could not be cast to project.")
+    }
+
+    // TODO: Add project.Equal method for more complete test comparisons
+    if p.Id() != p2.Id() || p.Name() != p2.Name() {
+        t.Fatalf("Project serialization failed: diff %q", diffText(t, p, p2))
+    }
+
 }
 
 func TestAddTimeblock(t *testing.T) {
@@ -150,7 +224,45 @@ func TestAddTimeblock(t *testing.T) {
 	}
 
 	if nb.Uid() != tb.Uid() || nb.Name() != tb.Name() {
-		t.Fatalf("Timeblock serialization failed: want %v got %v", nb, tb)
+		t.Fatalf("Timeblock serialization failed: diff %q", diffText(t, tb, nb))
 	}
 
 }
+
+func TestAddTimeblockToProject(t *testing.T) {
+    TEST_FILE := SHARED_EXAMPLE_FILE
+    cd := openCalendarFile(t, TEST_FILE)
+
+    p, err := model.NewProject("Test project")
+    if err != nil {
+        t.Fatalf("Failed to create new project: %s", err.Error())
+    }
+
+    tb, err := model.NewTimeBlock("Test block")
+    if err != nil {
+        t.Fatalf("Failed to create new timeblock: %s", err.Error())
+    }
+
+    tb.SetProperties(model.SetTimeBlockParent(p))
+
+    cd.AddProject(p)
+    cd.AddTimeBlock(tb)
+
+    tempfilepath := writeTempICSFile(t, "testaddtimeblocktoproject", cd)
+
+    cd2 := openCalendarFile(t, tempfilepath)
+    cleanupTempICSFile(t, tempfilepath)
+
+    tb2 := tryGetTimeBlock(t, cd2, tb.Uid())
+
+    p2, err := tb2.Parent()
+    if err != nil {
+        t.Fatalf("Could not get timeblock parent: %s", err.Error())
+    }
+
+    if p2.Id() != p.Id() {
+        t.Fatalf("Wrong parent after serialization: got %q want %q", p.Id(), p2.Id())
+    }
+
+}
+

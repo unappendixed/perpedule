@@ -68,6 +68,12 @@ func writeTempICSFile(t *testing.T, suffix string, cd *model.CalendarData) strin
 func cleanupTempICSFile(t *testing.T, filepath string) {
     t.Helper()
 
+    noclean := os.Getenv("NOCLEAN")
+
+    if noclean == "1" || noclean == "true" {
+        t.Logf("Not removing temp file %s because NOCLEAN is set to %s\n", filepath, noclean)
+        return
+    }
     err := os.Remove(filepath)
     if err != nil {
         fmt.Printf("Failed to cleanup temp file %q: %s\n", filepath, err.Error())

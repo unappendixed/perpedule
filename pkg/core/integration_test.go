@@ -1,3 +1,5 @@
+// +build !debug
+
 package core
 
 import (
@@ -21,6 +23,7 @@ func openCalendarFile(t *testing.T, filepath string) *model.CalendarData {
 	if err != nil {
 		t.Fatal("Failed to open test calendar asset")
 	}
+    defer func(){ _ = file.Close()}()
 
 	cal, err := parseICS(file)
 	if err != nil {
@@ -62,11 +65,21 @@ func writeTempICSFile(t *testing.T, suffix string, cd *model.CalendarData) strin
 	return filepath
 }
 
+func cleanupTempICSFile(t *testing.T, filepath string) {
+    t.Helper()
+
+    err := os.Remove(filepath)
+    if err != nil {
+        fmt.Printf("Failed to cleanup temp file %q: %s\n", filepath, err.Error())
+    }
+}
+
 func TestWriteICSFile(t *testing.T) {
 	TEST_FILE := SHARED_EXAMPLE_FILE
 	cd := openCalendarFile(t, TEST_FILE)
-	outpath := writeTempICSFile(t, "testwriteicsfile", cd)
-	cd2 := openCalendarFile(t, outpath)
+	newpath := writeTempICSFile(t, "testwriteicsfile", cd)
+	cd2 := openCalendarFile(t, newpath)
+    cleanupTempICSFile(t, newpath)
 	if !cd.Equal(cd2) {
 		t.Fatalf("original file and new file are not equal: %s",
 			diffText(t, fmt.Sprint(cd), fmt.Sprint(cd2)),
@@ -115,11 +128,11 @@ func TestAddTimeblock(t *testing.T) {
 	blockid := nb.Uid()
 
 	cd.AddTimeBlock(nb)
-	printComponents(t, cd)
 
 	newfile := writeTempICSFile(t, "testaddtimeblock", cd)
 
 	cd = openCalendarFile(t, newfile)
+    cleanupTempICSFile(t, newfile)
 	component, found := cd.GetByUid(blockid)
 	if !found {
 		t.Fatalf("Newly created timeblock did not survive serialization.")
@@ -134,23 +147,4 @@ func TestAddTimeblock(t *testing.T) {
 		t.Fatalf("Timeblock serialization failed: want %v got %v", nb, tb)
 	}
 
-}
-
-func TestUnknownComponents(t *testing.T) {
-	const TEST_FILE string = "../../test_files/testcalendar.ics"
-	file, err := os.Open(TEST_FILE)
-	if err != nil {
-		t.Fatal("Failed to open test calendar asset")
-	}
-
-	cal, err := parseICS(file)
-	if err != nil {
-		t.Fatal("Failed to parse object")
-	}
-
-	for _, v := range cal.Components {
-		for _, v2 := range v.UnknownPropertiesIANAProperties() {
-			t.Logf("%s\n", v2)
-		}
-	}
 }

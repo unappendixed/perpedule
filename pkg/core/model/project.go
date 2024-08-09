@@ -35,6 +35,15 @@ func (p Project) Id() string {
     return p.inner.Id()
 }
 
+func (p Project) Name() string {
+    prop := p.inner.GetProperty(ics.ComponentProperty(ics.PropertyName))
+    if prop != nil {
+        return prop.Value
+    }
+
+    return ""
+}
+
 func (p Project) Children() []TimeBlock {
 
     out := make([]TimeBlock, 0, 10)

@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/sergi/go-diff/diffmatchpatch"
-	model "github.com/unappendixed/perpedule/pkg/core/model"
 )
 
 const SHARED_EXAMPLE_FILE = "../../test_files/testcalendar.ics"
@@ -18,7 +17,7 @@ const SHARED_EXAMPLE_FILE = "../../test_files/testcalendar.ics"
 // HELPERS
 
 // Attempts to open the calendar file at `filepath` and calls Fatalf on error
-func openCalendarFile(t *testing.T, filepath string) *model.CalendarData {
+func openCalendarFile(t *testing.T, filepath string) *CalendarData {
 	t.Helper()
 
 	file, err := os.Open(filepath)
@@ -32,7 +31,7 @@ func openCalendarFile(t *testing.T, filepath string) *model.CalendarData {
 		t.Fatal("Failed to parse object")
 	}
 
-	return model.NewCalendarData(cal)
+	return NewCalendarData(cal)
 
 }
 
@@ -51,7 +50,7 @@ func diffText(t *testing.T, first any, second any) string {
 
 // Writes the calendar data to a file in /tmp with the filename formatted as:
 // "perpedule_{suffix}_{currentUnixTime}.ics" and returns the file path
-func writeTempICSFile(t *testing.T, suffix string, cd *model.CalendarData) string {
+func writeTempICSFile(t *testing.T, suffix string, cd *CalendarData) string {
 
 	t.Helper()
 
@@ -85,7 +84,7 @@ func cleanupTempICSFile(t *testing.T, filepath string) {
     }
 }
 
-func printComponents(t *testing.T, cd *model.CalendarData) {
+func printComponents(t *testing.T, cd *CalendarData) {
 	t.Helper()
 
 	t.Log("Components:")
@@ -107,7 +106,7 @@ func printComponents(t *testing.T, cd *model.CalendarData) {
 
 // Attempts to find and return a timeblock resource from `cd`. Calls t.Fatal on
 // any errors
-func tryGetProject(t *testing.T, cd *model.CalendarData, uid string) model.Project {
+func tryGetProject(t *testing.T, cd *CalendarData, uid string) Project {
     t.Helper()
 
     comp, found := cd.GetByUid(uid)
@@ -125,7 +124,7 @@ func tryGetProject(t *testing.T, cd *model.CalendarData, uid string) model.Proje
 
 // Attempts to find and return a timeblock resource from `cd`. Calls t.Fatal on
 // any errors
-func tryGetTimeBlock(t *testing.T, cd *model.CalendarData, uid string) model.TimeBlock {
+func tryGetTimeBlock(t *testing.T, cd *CalendarData, uid string) TimeBlock {
     t.Helper()
 
     comp, found := cd.GetByUid(uid)
@@ -167,7 +166,7 @@ func TestParseICSFile(t *testing.T) {
 func TestAddProject(t *testing.T) {
     TEST_FILE := SHARED_EXAMPLE_FILE
     cd := openCalendarFile(t, TEST_FILE)
-    p, err := model.NewProject("Test project")
+    p, err := NewProject("Test project")
     if err != nil {
         t.Fatalf("failed to create project: %s", err.Error())
     }
@@ -200,7 +199,7 @@ func TestAddTimeblock(t *testing.T) {
 	TEST_FILE := SHARED_EXAMPLE_FILE
 	cd := openCalendarFile(t, TEST_FILE)
 
-	nb, err := model.NewTimeBlock("Test block")
+	nb, err := NewTimeBlock("Test block")
 	if err != nil {
 		t.Fatalf("failed to create timeblock: %s", err.Error())
 	}
@@ -233,17 +232,17 @@ func TestAddTimeblockToProject(t *testing.T) {
     TEST_FILE := SHARED_EXAMPLE_FILE
     cd := openCalendarFile(t, TEST_FILE)
 
-    p, err := model.NewProject("Test project")
+    p, err := NewProject("Test project")
     if err != nil {
         t.Fatalf("Failed to create new project: %s", err.Error())
     }
 
-    tb, err := model.NewTimeBlock("Test block")
+    tb, err := NewTimeBlock("Test block")
     if err != nil {
         t.Fatalf("Failed to create new timeblock: %s", err.Error())
     }
 
-    tb.SetProperties(model.SetTimeBlockParent(p))
+    tb.SetProperties(SetTimeBlockParent(p))
 
     cd.AddProject(p)
     cd.AddTimeBlock(tb)

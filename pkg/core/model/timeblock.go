@@ -82,10 +82,15 @@ func SetTimeBlockDescription(desc string) timeBlockPropertyOption {
     }
 }
 
-func SetTimeBlockParent(parentId string) timeBlockPropertyOption {
+func SetTimeBlockParentId(parentId string) timeBlockPropertyOption {
     return func(tb *TimeBlock) {
         tb.parentId = parentId
+        tb.inner.SetProperty(ics.ComponentPropertyRelatedTo, parentId)
     }
+}
+
+func SetTimeBlockParent(parent Project) timeBlockPropertyOption {
+    return SetTimeBlockParentId(parent.Id())
 }
 
 func SetTimeBlockStart(t time.Time) timeBlockPropertyOption {
